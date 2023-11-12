@@ -49,6 +49,26 @@ const getDog = (msg) => {
   });
 };
 
+const pollNotation = ['0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
+const makePoll = (msg) => {
+  let content = msg.content.slice(5);
+  const parts = content.split('|');
+  if (parts.length > 12) {
+    msg.reply('Sorry, only up to 11 options allowed in a poll right now.');
+    return;
+  }
+  let message = `**${parts[0]}**\n-----------------------------\n`;
+  for(let i = 1; i < parts.length; i++) {
+    message += `${pollNotation[i - 1]} ${parts[i]}\n`;
+  }
+  msg.reply(message).then(reply => {
+    for(let i = 0; i < parts.length - 1; i++) {
+      reply.react(pollNotation[i]);
+    }
+  });
+};
+
+
 let commands = {
   'dognow': {
     description: 'When you need a doggy picture right the heckity heck now.',
@@ -73,6 +93,10 @@ let commands = {
   'motivateme': {
     description: 'Get some motivation to improve your day.',
     invoke: (msg) => msg.reply('https://www.youtube.com/watch?v=KxGRhd_iWuE')
+  },
+  'poll': {
+    description: 'Make a new poll using the format: "!poll <question>|<option1>|<option2>|<option3>"',
+    invoke: makePoll
   },
   'vaporeon': {
     description: 'Posts the vaporeon copypasta in spoiler tags. Don\'t use this one. Just don\'t',
