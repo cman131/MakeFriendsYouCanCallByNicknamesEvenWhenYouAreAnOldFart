@@ -19,7 +19,7 @@ client.on('messageCreate', (msg) => {
   if (msg.author.bot) return;
   if (!msg.content.startsWith(prefix)) return; // do nothing if command is not preceded with prefix
 
-  const userCmd = msg.content.slice(prefix.length);
+  const userCmd = msg.content.split(' ')[0].slice(prefix.length);
 
   if (userCmd in commands) {
     commands[userCmd].invoke(msg);
