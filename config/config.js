@@ -5,6 +5,7 @@ const config = require('./default');
 const r2 = require('r2');
 
 const DOG_API_URL   = "https://api.thedogapi.com/"
+const CAT_API_URL   = "https://api.thecatapi.com/"
 
 const botIntents = [
   GatewayIntentBits.DirectMessages,
@@ -42,6 +43,14 @@ const inspiration = (msg) => {
 };
 
 async function getDog(msg) {
+  getAnimal(msg, DOG_API_URL);
+}
+
+async function getCat(msg) {
+  getAnimal(msg, CAT_API_URL);
+}
+
+async function getAnimal(msg, apiBaseUrl) {
   var headers = {
       'X-API-KEY': config.DOG_API_KEY,
   }
@@ -56,7 +65,7 @@ async function getDog(msg) {
   let queryString = querystring.stringify(query_params);
   try {
     // construct the API Get request url
-    let _url = DOG_API_URL + `v1/images/search?${queryString}`;
+    let _url = apiBaseUrl + `v1/images/search?${queryString}`;
     // make the request passing the url, and headers object which contains the API_KEY
     const response = await r2.get(_url , {headers} ).json
     msg.reply(response[0].url);
@@ -86,6 +95,10 @@ const makePoll = (msg) => {
 
 
 let commands = {
+  'catnow': {
+    description: 'When you, for some unexplained reason, are confused and desire a cat picture instead of a dog one.',
+    invoke: getCat
+  },
   'dognow': {
     description: 'When you need a doggy picture right the heckity heck now.',
     invoke: getDog
@@ -119,13 +132,16 @@ let commands = {
     invoke: (msg) => msg.reply('|| Hey guys, did you know that in terms of male human and female Pokémon breeding, Vaporeon is the most compatible Pokémon for humans? Not only are they in the field egg group, which is mostly comprised of mammals, Vaporeon are an average of 3”03’ tall and 63.9 pounds, this means they’re large enough to be able handle human dicks, and with their impressive Base Stats for HP and access to Acid Armor, you can be rough with one. Due to their mostly water based biology, there’s no doubt in my mind that an aroused Vaporeon would be incredibly wet, so wet that you could easily have sex with one for hours without getting sore. They can also learn the moves Attract, Baby-Doll Eyes, Captivate, Charm, and Tail Whip, along with not having fur to hide nipples, so it’d be incredibly easy for one to get you in the mood. With their abilities Water Absorb and Hydration, they can easily recover from fatigue with enough water. No other Pokémon comes close to this level of compatibility. Also, fun fact, if you pull out enough, you can make your Vaporeon turn white. Vaporeon is literally built for human dick. Ungodly defense stat+high HP pool+Acid Armor means it can take cock all day, all shapes and sizes and still come for more ||')
   },
 };
-commands['help'] = {
-  description: 'Get the list of commands available.',
-  invoke: (msg) => msg.reply(
-    '**Available commands**\n' +
-    '------------------\n' +
-    Object.keys(commands).map(cmd => `**!${cmd}**: ${commands[cmd].description}`).join('\n')
-    )
-};
+const helpAliases = ['help', 'commands', 'commandlist', 'man'];
+helpAliases.forEach(cmd => {
+  commands[cmd] = {
+    description: 'Get the list of commands available.',
+    invoke: (msg) => msg.reply(
+      '**Available commands**\n' +
+      '------------------\n' +
+      Object.keys(commands).map(cmd => `**!${cmd}**: ${commands[cmd].description}`).join('\n')
+      )
+  };
+});
 
 module.exports = { botIntents, commands }
