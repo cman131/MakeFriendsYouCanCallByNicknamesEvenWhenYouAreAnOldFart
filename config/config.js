@@ -1,11 +1,7 @@
 const { GatewayIntentBits } = require('discord.js');
-const https = require('https');
 const querystring = require('querystring');
 const config = require('./default');
 const r2 = require('r2');
-
-const DOG_API_URL   = "https://api.thedogapi.com/"
-const CAT_API_URL   = "https://api.thecatapi.com/"
 
 const botIntents = [
   GatewayIntentBits.DirectMessages,
@@ -16,62 +12,43 @@ const botIntents = [
   GatewayIntentBits.GuildScheduledEvents,
 ];
 
-const insult = (msg) => {
-  const name = msg.author.username;
-  https.get('https://insult.mattbas.org/api/insult.json?who=' + name, response => {
-    let body = '';
-    response.on('data', function(chunk) {
-      body += chunk;
-    });
-    response.on('end', function() {
-      const json = JSON.parse(body);
-      msg.reply(json.insult);
-    });
+async function insult(msg) {
+  const url = 'https://insult.mattbas.org/api/insult.json';
+  const queryParams = { who: msg.author.username };
+  await getApiCall(url, queryParams, {}, response => {
+    msg.reply(response.insult);
   });
-};
+}
 
-const inspiration = (msg) => {
-  https.get('https://inspirobot.me/api?generate=true', response => {
-    let body = '';
-    response.on('data', function(chunk) {
-      body += chunk;
-    });
-    response.on('end', function() {
-      msg.reply(body);
-    });
-  });
-};
+async function inspiration(msg) {
+  const url = 'https://inspirobot.me/api';
+  const queryParams = { generate: true };
+  await getApiCall(url, queryParams, {}, response => {
+    msg.reply(response);
+  }, console.log, false);
+}
 
 async function getDog(msg) {
-  getAnimal(msg, DOG_API_URL);
+  getAnimal(msg, 'dog');
 }
 
 async function getCat(msg) {
-  getAnimal(msg, CAT_API_URL);
+  getAnimal(msg, 'cat');
 }
 
-async function getAnimal(msg, apiBaseUrl) {
-  var headers = {
+async function getAnimal(msg, animal) {
+  const apiBaseUrl = `https://api.the${animal}api.com/v1/images/search`;
+  const headers = {
       'X-API-KEY': config.DOG_API_KEY,
   }
-  var query_params = {
+  const queryParams = {
     'has_breeds':true, // we only want images with at least one breed data object - name, temperament etc
     'mime_types':'jpg,png', // we only want static images as Discord doesn't like gifs
     'size':'small',   // get the small images as the size is prefect for Discord's 390x256 limit
     'sub_id': msg.author.username, // pass the message senders username so you can see how many images each user has asked for in the stats
     'limit' : 1       // only need one
   }
-  // convert this object to query string 
-  let queryString = querystring.stringify(query_params);
-  try {
-    // construct the API Get request url
-    let _url = apiBaseUrl + `v1/images/search?${queryString}`;
-    // make the request passing the url, and headers object which contains the API_KEY
-    const response = await r2.get(_url , {headers} ).json
-    msg.reply(response[0].url);
-  } catch (e) {
-      console.log(e)
-  }
+  await getApiCall(apiBaseUrl, queryParams, headers, response => msg.reply(response[0].url));
 }
 
 const pollNotation = ['0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
@@ -81,6 +58,8 @@ const makePoll = (msg) => {
   if (parts.length > 12) {
     msg.reply('Sorry, only up to 11 options allowed in a poll right now.');
     return;
+  } else if (parts.length <= 1) {
+    msg.reply('Don\'t you want options in your poll?');
   }
   let message = `**${parts[0]}**\n-----------------------------\n`;
   for(let i = 1; i < parts.length; i++) {
@@ -143,5 +122,25 @@ helpAliases.forEach(cmd => {
       )
   };
 });
+
+async function getApiCall(url, queryParams, headers, onSuccess, onError = console.log, shouldReadAsJson = true) {
+  // convert this object to query string 
+  let queryString = querystring.stringify(queryParams);
+
+  try {
+    // construct the API Get request url
+    let _url = `${url}?${queryString}`;
+    // make the request passing the url, and headers object which contains the API_KEY
+    let response;
+    if (shouldReadAsJson) {
+      response = await r2.get(_url , { headers } ).json;
+    } else {
+      response = await r2.get(_url , { headers } ).text;
+    }
+    onSuccess(response);
+  } catch (e) {
+      onError(e)
+  }
+}
 
 module.exports = { botIntents, commands }
