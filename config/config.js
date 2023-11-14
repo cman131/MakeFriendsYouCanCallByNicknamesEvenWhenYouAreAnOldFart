@@ -1,5 +1,10 @@
 const { GatewayIntentBits } = require('discord.js');
 const https = require('https');
+const querystring = require('querystring');
+const config = require('./default');
+const r2 = require('r2');
+
+const DOG_API_URL   = "https://api.thedogapi.com/"
 
 const botIntents = [
   GatewayIntentBits.DirectMessages,
@@ -36,18 +41,29 @@ const inspiration = (msg) => {
   });
 };
 
-const getDog = (msg) => {
-  https.get('https://dog.ceo/api/breeds/image/random', response => {
-    let body = '';
-    response.on('data', function(chunk) {
-      body += chunk;
-    });
-    response.on('end', function() {
-      const json = JSON.parse(body);
-      msg.reply(json.message);
-    });
-  });
-};
+async function getDog(msg) {
+  var headers = {
+      'X-API-KEY': config.DOG_API_KEY,
+  }
+  var query_params = {
+    'has_breeds':true, // we only want images with at least one breed data object - name, temperament etc
+    'mime_types':'jpg,png', // we only want static images as Discord doesn't like gifs
+    'size':'small',   // get the small images as the size is prefect for Discord's 390x256 limit
+    'sub_id': msg.author.username, // pass the message senders username so you can see how many images each user has asked for in the stats
+    'limit' : 1       // only need one
+  }
+  // convert this object to query string 
+  let queryString = querystring.stringify(query_params);
+  try {
+    // construct the API Get request url
+    let _url = DOG_API_URL + `v1/images/search?${queryString}`;
+    // make the request passing the url, and headers object which contains the API_KEY
+    const response = await r2.get(_url , {headers} ).json
+    msg.reply(response[0].url);
+  } catch (e) {
+      console.log(e)
+  }
+}
 
 const pollNotation = ['0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
 const makePoll = (msg) => {
