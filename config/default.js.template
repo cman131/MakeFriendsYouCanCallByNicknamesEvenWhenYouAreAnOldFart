@@ -1,4 +1,5 @@
 const config = {
   DISCORD_TOKEN: 'YOUR_TOKEN_HERE',
+  DOG_API_KEY: 'YOUR_TOKEN_HERE'
 };
 module.exports = config;
