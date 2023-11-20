@@ -91,6 +91,7 @@ const kylerPics = [
   'https://imgur.com/d2PejtN',
   'https://imgur.com/2IIYATL',
   'https://imgur.com/8i0R4Jf',
+  'https://imgur.com/a/Vt944Ic',
 ];
 
 let commands = {
