@@ -72,6 +72,26 @@ const makePoll = (msg) => {
   });
 };
 
+const kylerPics = [
+  'https://imgur.com/buhSDql',
+  'https://imgur.com/hSVtkk0',
+  'https://imgur.com/TIo0mQW',
+  'https://imgur.com/1BSuqCt',
+  'https://imgur.com/WvDRwI6',
+  'https://imgur.com/OdC4PI2',
+  'https://imgur.com/P8dkdKU',
+  'https://imgur.com/VqzxsEY',
+  'https://imgur.com/bpHTjBZ',
+  'https://imgur.com/hPix0Bc',
+  'https://imgur.com/bDxuRCd',
+  'https://imgur.com/VwEcL99',
+  'https://imgur.com/MmPDFkk',
+  'https://imgur.com/YLD9Leo',
+  'https://imgur.com/kabTy8t',
+  'https://imgur.com/d2PejtN',
+  'https://imgur.com/2IIYATL',
+  'https://imgur.com/8i0R4Jf',
+];
 
 let commands = {
   'catnow': {
@@ -97,6 +117,10 @@ let commands = {
   'inspireme': {
     description: 'Get an Inspirobot generated inspirational image.',
     invoke: inspiration
+  },
+  'kylernow': {
+    description: 'When you find your life lacking the beautiful visage of everyone\'s wonderful friend, Kyler.',
+    invoke: (msg) => msg.reply(kylerPics[Math.floor(Math.random() * kylerPics.length)])
   },
   'motivateme': {
     description: 'Get some motivation to improve your day.',
