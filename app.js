@@ -62,7 +62,11 @@ schedule.scheduleJob({
                     for (let member of values) {
                         let user = member.user;
                         console.log(`Messaged ${user.username} about the ${event.name} event.`);
-                        user.send(`**${event.name}** is coming up tomorrow and you are signed up to join! If your plans have changed, please update your status on the event.\n${event.url}`);
+                        try {
+                          user.send(`**${event.name}** is coming up tomorrow and you are signed up to join! If your plans have changed, please update your status on the event.\n${event.url}`);
+                        } catch (e) {
+                          console.log(`Failed to message ${user.username} about ${event.name}. Error: ${e}`)
+                        }
                     }
                 });
             }
