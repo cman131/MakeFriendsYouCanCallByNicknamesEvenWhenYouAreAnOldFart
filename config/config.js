@@ -51,6 +51,25 @@ async function getAnimal(msg, animal) {
   await getApiCall(apiBaseUrl, queryParams, headers, response => msg.reply(response[0].url));
 }
 
+function getEventRoundup(msg) {
+  const currentEvents = msg.guild.scheduledEvents.cache.filter(event => isThisWeek(event.startDate ?? new Date(event.scheduledStartTimestamp)));
+  if (!currentEvents.some(s => s)) {
+    msg.reply('There are currently no events this week.');
+    return;
+  }
+  msg.reply(`Upcoming Events\n---------------\n${currentEvents.map(event => event.url).join('\n')}`);
+}
+
+const lengthOfAWeek = 604800000;
+function isThisWeek(date) {
+  //Get last monday at midnight from today's date
+  var lastMonday = new Date();
+  lastMonday.setDate(lastMonday.getDate() - (lastMonday.getDay() - 1));
+  lastMonday.setHours(0,0,0,0);
+
+  return lastMonday.getTime() <= date.getTime() && date.getTime() < (lastMonday.getTime() + lengthOfAWeek);
+}
+
 const pollNotation = ['0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
 const makePoll = (msg) => {
   let content = msg.content.slice(5);
@@ -102,6 +121,10 @@ let commands = {
   'dognow': {
     description: 'When you need a doggy picture right the heckity heck now.',
     invoke: getDog
+  },
+  'eventroundup': {
+    description: 'Give a quick list of events happening this week.',
+    invoke: getEventRoundup
   },
   'flareon': {
     description: 'Posts the flareon copypasta. A significantly more wholesome copypasta than that of Vaporeon.',
