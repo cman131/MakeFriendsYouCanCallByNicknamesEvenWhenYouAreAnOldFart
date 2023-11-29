@@ -57,7 +57,7 @@ function getEventRoundup(msg) {
     msg.reply('There are currently no events this week.');
     return;
   }
-  msg.reply(`Upcoming Events\n---------------\n${currentEvents.map(event => event.url).join('\n')}`);
+  msg.reply(`Upcoming Events This Week\n------------------------------\n${currentEvents.map(event => event.url).join('\n')}`);
 }
 
 const lengthOfAWeek = 604800000;
