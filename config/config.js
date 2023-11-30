@@ -51,6 +51,16 @@ async function getAnimal(msg, animal) {
   await getApiCall(apiBaseUrl, queryParams, headers, response => msg.reply(response[0].url));
 }
 
+async function getFriendImage(msg) {
+  const apiBaseUrl = 'https://api.imgur.com/3/album/Vt944Ic/images';
+  const headers = {
+      'Authorization': `Client-ID ${config.IMGUR_API_KEY}`,
+  }
+  await getApiCall(apiBaseUrl, {}, headers, images => {
+    msg.reply(images.data[Math.floor(Math.random() * images.data.length)].link);
+  });
+}
+
 function getEventRoundup(msg) {
   const currentEvents = msg.guild.scheduledEvents.cache.filter(event => isThisWeek(event.startDate ?? new Date(event.scheduledStartTimestamp)));
   if (!currentEvents.some(s => s)) {
@@ -91,28 +101,6 @@ const makePoll = (msg) => {
   });
 };
 
-const kylerPics = [
-  'https://imgur.com/buhSDql',
-  'https://imgur.com/hSVtkk0',
-  'https://imgur.com/TIo0mQW',
-  'https://imgur.com/1BSuqCt',
-  'https://imgur.com/WvDRwI6',
-  'https://imgur.com/OdC4PI2',
-  'https://imgur.com/P8dkdKU',
-  'https://imgur.com/VqzxsEY',
-  'https://imgur.com/bpHTjBZ',
-  'https://imgur.com/hPix0Bc',
-  'https://imgur.com/bDxuRCd',
-  'https://imgur.com/VwEcL99',
-  'https://imgur.com/MmPDFkk',
-  'https://imgur.com/YLD9Leo',
-  'https://imgur.com/kabTy8t',
-  'https://imgur.com/d2PejtN',
-  'https://imgur.com/2IIYATL',
-  'https://imgur.com/8i0R4Jf',
-  'https://imgur.com/a/Vt944Ic',
-];
-
 let commands = {
   'catnow': {
     description: 'When you, for some unexplained reason, are confused and desire a cat picture instead of a dog one.',
@@ -130,6 +118,10 @@ let commands = {
     description: 'Posts the flareon copypasta. A significantly more wholesome copypasta than that of Vaporeon.',
     invoke: (msg) => msg.reply('Hey guys, did you know that in terms of human companionship, Flareon is objectively the most huggable Pokemon? While their maximum temperature is likely too much for most, they are capable of controlling it, so they can set themselves to the perfect temperature for you. Along with that, they have a lot of fluff, making them undeniably incredibly soft to touch. But that\'s not all, they have a very respectable special defense stat of 110, which means that they are likely very calm and resistant to emotional damage. Because of this, if you have a bad day, you can vent to it while hugging it, and it won\'t mind. It can make itself even more endearing with moves like Charm and Baby Doll Eyes, ensuring that you never have a prolonged bout of depression ever again.')
   },
+  'friendnow': {
+    description: 'Wanna see a friendly face right now? Try this command out.',
+    invoke: getFriendImage
+  },
   'getmyname': {
     description: 'Gets your username.',
     invoke: (msg) => msg.reply(msg.author.username)
@@ -141,10 +133,6 @@ let commands = {
   'inspireme': {
     description: 'Get an Inspirobot generated inspirational image.',
     invoke: inspiration
-  },
-  'kylernow': {
-    description: 'When you find your life lacking the beautiful visage of everyone\'s wonderful friend, Kyler.',
-    invoke: (msg) => msg.reply(kylerPics[Math.floor(Math.random() * kylerPics.length)])
   },
   'motivateme': {
     description: 'Get some motivation to improve your day.',
