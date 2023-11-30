@@ -166,16 +166,19 @@ async function getApiCall(url, queryParams, headers, onSuccess, onError = consol
   try {
     // construct the API Get request url
     let _url = `${url}?${queryString}`;
+
     // make the request passing the url, and headers object which contains the API_KEY
-    let response;
+    let response = await r2.get(_url , { headers } );
     if (shouldReadAsJson) {
-      response = await r2.get(_url , { headers } ).json;
+      response = await response.response;
+      response = await response.json();
     } else {
-      response = await r2.get(_url , { headers } ).text;
+      response = await response.text;
     }
     onSuccess(response);
   } catch (e) {
-      onError(e)
+    console.log(e);
+    onError(e)
   }
 }
 
