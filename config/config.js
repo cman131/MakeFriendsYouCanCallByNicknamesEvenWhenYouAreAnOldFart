@@ -175,7 +175,6 @@ async function getApiCall(url, queryParams, headers, onSuccess, onError = consol
     } else {
       response = await response.text;
     }
-    console.log('Successful response');
     onSuccess(response);
   } catch (e) {
     console.log(e);
