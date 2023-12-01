@@ -61,15 +61,15 @@ async function getFriendImage(msg) {
   });
 }
 
-function getEventRoundup(msg) {
+function getEventWeeklyRoundup(msg) {
   const currentEvents = msg.guild.scheduledEvents.cache.filter(event => isThisWeek(event.startDate ?? new Date(event.scheduledStartTimestamp)));
   if (!currentEvents.some(s => s)) {
     msg.reply('There are currently no events this week.');
     return;
   }
-  msg.reply(`Upcoming Events This Week\n------------------------------\n${currentEvents.map(event => event.url).join('\n')}`);
+  const sortedEvents = currentEvents.sort((a, b) => (a.startDate ?? new Date(a.scheduledStartTimestamp)).getTime() < (b.startDate ?? new Date(b.scheduledStartTimestamp)).getTime() ? 1 : -1);
+  msg.reply(`Events This Week\n------------------------------\n${sortedEvents.map(event => event.url).join('\n')}`);
 }
-
 const lengthOfAWeek = 604800000;
 function isThisWeek(date) {
   //Get last monday at midnight from today's date
@@ -78,6 +78,23 @@ function isThisWeek(date) {
   lastMonday.setHours(0,0,0,0);
 
   return lastMonday.getTime() <= date.getTime() && date.getTime() < (lastMonday.getTime() + lengthOfAWeek);
+}
+
+function getUpcomingEvents(msg) {
+  const currentEvents = msg.guild.scheduledEvents.cache.filter(event => isAWeekOrLessAway(event.startDate ?? new Date(event.scheduledStartTimestamp)));
+  if (!currentEvents.some(s => s)) {
+    msg.reply('There are no upcoming events (in the next 7 days).');
+    return;
+  }
+  const sortedEvents = currentEvents.sort((a, b) => (a.startDate ?? new Date(a.scheduledStartTimestamp)).getTime() < (b.startDate ?? new Date(b.scheduledStartTimestamp)).getTime() ? 1 : -1);
+  msg.reply(`Upcoming Events\n------------------------------\n${sortedEvents.map(event => event.url).join('\n')}`);
+}
+function isAWeekOrLessAway(date) {
+  //Get last monday at midnight from today's date
+  var today = new Date();
+  today.setHours(0,0,0,0);
+
+  return today.getTime() <= date.getTime() && date.getTime() < (today.getTime() + lengthOfAWeek);
 }
 
 const pollNotation = ['0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
@@ -112,7 +129,7 @@ let commands = {
   },
   'eventroundup': {
     description: 'Give a quick list of events happening this week.',
-    invoke: getEventRoundup
+    invoke: getEventWeeklyRoundup
   },
   'flareon': {
     description: 'Posts the flareon copypasta. A significantly more wholesome copypasta than that of Vaporeon.',
@@ -141,6 +158,10 @@ let commands = {
   'poll': {
     description: 'Make a new poll using the format: "!poll <question>|<option1>|<option2>|<option3>"',
     invoke: makePoll
+  },
+  'upcomingevents': {
+    description: 'Give a quick list of events coming in the next 7 days.',
+    invoke: getUpcomingEvents
   },
   'vaporeon': {
     description: 'Posts the vaporeon copypasta in spoiler tags. Don\'t use this one. Just don\'t',
