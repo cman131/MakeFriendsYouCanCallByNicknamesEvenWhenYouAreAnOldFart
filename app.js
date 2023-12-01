@@ -53,15 +53,10 @@ schedule.scheduleJob({
             alertDate.setHours(alertDate.getHours() - 5);
             alertDate.setDate(alertDate.getDate() - 1);
             if (
-                currentDate.getYear() === alertDate.getYear() &&
-                currentDate.getDay() === alertDate.getDay() &&
+                currentDate.getFullYear() === alertDate.getFullYear() &&
+                currentDate.getDate() === alertDate.getDate() &&
                 currentDate.getMonth() === alertDate.getMonth()
             ) {
-              console.log(currentDate);
-              console.log(alertDate);
-              console.log(event.scheduledStartAt);
-              console.log(event.scheduledStartTimestamp);
-
               event.fetchSubscribers().then(attendees => {
                   let values = attendees.values();
                   for (let member of values) {
