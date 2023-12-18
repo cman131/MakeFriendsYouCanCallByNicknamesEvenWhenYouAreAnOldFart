@@ -1,4 +1,4 @@
-const { Client } = require('discord.js');
+const { Client, GuildScheduledEventStatus } = require('discord.js');
 const schedule = require('node-schedule');
 const { botIntents, commands } = require('./config/config');
 const config = require('./config/default');
@@ -45,31 +45,37 @@ schedule.scheduleJob({
     minute: 0,
     second: 0
 }, () => {
-    const currentDate = new Date();
-    client.guilds.cache.forEach(guild => {
-        guild.scheduledEvents.cache.forEach(event => {
-            // Set the alert date for the day before the event in EST
-            let alertDate = event.startDate ?? new Date(event.scheduledStartTimestamp);
-            alertDate.setHours(alertDate.getHours() - 5);
-            alertDate.setDate(alertDate.getDate() - 1);
-            if (
-                currentDate.getFullYear() === alertDate.getFullYear() &&
-                currentDate.getDate() === alertDate.getDate() &&
-                currentDate.getMonth() === alertDate.getMonth()
-            ) {
-              event.fetchSubscribers().then(attendees => {
-                  let values = attendees.values();
-                  for (let member of values) {
-                      let user = member.user;
-                      console.log(`Messaged ${user.username} about the ${event.name} event.`);
-                      try {
-                        user.send(`**${event.name}** is coming up tomorrow and you are signed up to join! If your plans have changed, please update your status on the event.\n${event.url}`);
-                      } catch (e) {
-                        console.log(`Failed to message ${user.username} about ${event.name}. Error: ${e}`)
-                      }
-                  }
-              });
-            }
-        })
-    });
+  alertAttendees();
 });
+function alertAttendees() {
+  const currentDate = new Date();
+  client.guilds.cache.forEach(guild => {
+      guild.scheduledEvents.cache.forEach(event => {
+          // Set the alert date for the day before the event in EST
+          let alertDate = event.startDate ?? new Date(event.scheduledStartTimestamp);
+          alertDate.setHours(alertDate.getHours() - 5);
+          alertDate.setDate(alertDate.getDate() - 1);
+          if (
+              event.status != GuildScheduledEventStatus.Canceled &&
+              event.status != GuildScheduledEventStatus.Completed &&
+              currentDate.getFullYear() === alertDate.getFullYear() &&
+              currentDate.getDate() === alertDate.getDate() &&
+              currentDate.getMonth() === alertDate.getMonth()
+          ) {
+            event.fetchSubscribers().then(attendees => {
+                let values = attendees.values();
+                for (let member of values) {
+                    let user = member.user;
+                    console.log(`Messaged ${user.username} about the ${event.name} event.`);
+                    try {
+                      user.send(`**${event.name}** is coming up tomorrow and you are signed up to join! If your plans have changed, please update your status on the event.\n${event.url}`)
+                        .catch((e) => console.log(`Failed to message ${user.username} about ${event.name}. Error: ${e}`));
+                    } catch (e) {
+                      console.log(`Failed to message ${user.username} about ${event.name}. Error: ${e}`);
+                    }
+                }
+            });
+          }
+      })
+  });
+}
