@@ -1,4 +1,4 @@
-const { GatewayIntentBits } = require('discord.js');
+const { GatewayIntentBits, GuildScheduledEventStatus } = require('discord.js');
 const querystring = require('querystring');
 const config = require('./default');
 const r2 = require('r2');
@@ -62,7 +62,11 @@ async function getFriendImage(msg) {
 }
 
 function getEventWeeklyRoundup(msg) {
-  const currentEvents = msg.guild.scheduledEvents.cache.filter(event => isThisWeek(event.startDate ?? new Date(event.scheduledStartTimestamp)));
+  const currentEvents = msg.guild.scheduledEvents.cache.filter(event =>
+    isThisWeek(event.startDate ?? new Date(event.scheduledStartTimestamp)) &&
+    event.status != GuildScheduledEventStatus.Canceled &&
+    event.status != GuildScheduledEventStatus.Completed
+  );
   if (!currentEvents.some(s => s)) {
     msg.reply('There are currently no events this week.');
     return;
@@ -81,7 +85,11 @@ function isThisWeek(date) {
 }
 
 function getUpcomingEvents(msg) {
-  const currentEvents = msg.guild.scheduledEvents.cache.filter(event => isAWeekOrLessAway(event.startDate ?? new Date(event.scheduledStartTimestamp)));
+  const currentEvents = msg.guild.scheduledEvents.cache.filter(event =>
+    isAWeekOrLessAway(event.startDate ?? new Date(event.scheduledStartTimestamp)) &&
+    event.status != GuildScheduledEventStatus.Canceled &&
+    event.status != GuildScheduledEventStatus.Completed
+  );
   if (!currentEvents.some(s => s)) {
     msg.reply('There are no upcoming events (in the next 7 days).');
     return;
