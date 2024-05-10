@@ -61,7 +61,17 @@ async function getFriendImage(msg) {
   });
 }
 
-function getEventWeeklyRoundup(msg) {
+async function getFriendBomb(msg) {
+  let count = msg.content.split(' ').length > 1 ? msg.content.split(' ')[1] ?? 10 : 10;
+  if (count > 10) {
+    count = 10;
+  }
+  for(let i = 0; i < count; i++) {
+    await getFriendImage(msg);
+  }
+}
+
+async function getEventWeeklyRoundup(msg) {
   const currentEvents = msg.guild.scheduledEvents.cache.filter(event =>
     isThisWeek(event.startDate ?? new Date(event.scheduledStartTimestamp)) &&
     event.status != GuildScheduledEventStatus.Canceled &&
@@ -105,6 +115,15 @@ function isAWeekOrLessAway(date) {
   return today.getTime() <= date.getTime() && date.getTime() < (today.getTime() + lengthOfAWeek);
 }
 
+async function editMessage(msg) {
+  const messageId = msg.content.split(' ')[1];
+  const updatedMessage = msg.content.split(' ').slice(2).join(' ');
+  console.log(messageId);
+
+  const message = await msg.channel.messages.fetch(messageId)
+  await message.edit(updatedMessage);
+}
+
 const pollNotation = ['0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
 const makePoll = (msg) => {
   let content = msg.content.slice(5);
@@ -135,6 +154,10 @@ let commands = {
     description: 'When you need a doggy picture right the heckity heck now.',
     invoke: getDog
   },
+  'editmessage': {
+    description: 'Update a given message (by ID) in the same channel sent by the bot to a new message. EX: !editmessage 701574160211771462 I am the new message, yay!',
+    invoke: editMessage
+  },
   'eventroundup': {
     description: 'Give a quick list of events happening this week.',
     invoke: getEventWeeklyRoundup
@@ -146,6 +169,10 @@ let commands = {
   'friendnow': {
     description: 'Wanna see a friendly face right now? Try this command out.',
     invoke: getFriendImage
+  },
+  'friendbomb': {
+    description: 'Bomb the channel with friend images. EX: !friendbomb 10',
+    invoke: getFriendBomb
   },
   'getmyname': {
     description: 'Gets your username.',
@@ -189,7 +216,7 @@ helpAliases.forEach(cmd => {
 });
 
 async function getApiCall(url, queryParams, headers, onSuccess, onError = console.log, shouldReadAsJson = true) {
-  // convert this object to query string 
+  // convert this object to query string
   let queryString = querystring.stringify(queryParams);
 
   try {
@@ -212,3 +239,4 @@ async function getApiCall(url, queryParams, headers, onSuccess, onError = consol
 }
 
 module.exports = { botIntents, commands }
+
