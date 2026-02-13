@@ -132,7 +132,7 @@ function clearLetsPlayChannelMap() {
   }
 }
 
-function letsplay(msg) {
+function joinlobby(msg) {
   const parts = msg.content.trim().split(/\s+/);
   const playerCountArg = parts[1];
   let playerCount = playerCountArg ? parseInt(playerCountArg, 10) : 4;
@@ -143,9 +143,11 @@ function letsplay(msg) {
   const userId = msg.author.id;
 
   const entry = letsPlayChannelMap[channelId];
+  let alreadyInLobby = false;
   if (!entry || entry.userIds.size === 0) {
     letsPlayChannelMap[channelId] = { playerCount, userIds: new Set([userId]) };
   } else {
+    alreadyInLobby = entry.userIds.has(userId);
     entry.userIds.add(userId);
   }
 
@@ -155,7 +157,28 @@ function letsplay(msg) {
     delete letsPlayChannelMap[channelId];
     msg.channel.send(`It's time to play: ${mentions}`);
   } else {
-    msg.channel.send(`${msg.author.username} joined the lobby. ${current.userIds.size}/${current.playerCount} players so far.`);
+    if (alreadyInLobby) {
+      msg.channel.send(`${msg.author.username} is already in the lobby. ${current.userIds.size}/${current.playerCount} players so far.`);
+    } else {
+      msg.channel.send(`${msg.author.username} joined the lobby. ${current.userIds.size}/${current.playerCount} players so far.`);
+    }
+  }
+}
+
+function leavelobby(msg) {
+  const channelId = msg.channel.id;
+  const userId = msg.author.id;
+  const entry = letsPlayChannelMap[channelId];
+  if (!entry || !entry.userIds.has(userId)) {
+    msg.channel.send(`${msg.author.username} is not in the lobby.`);
+    return;
+  }
+  entry.userIds.delete(userId);
+  if (entry.userIds.size === 0) {
+    delete letsPlayChannelMap[channelId];
+    msg.channel.send(`${msg.author.username} left the lobby. The lobby is now empty.`);
+  } else {
+    msg.channel.send(`${msg.author.username} left the lobby. ${entry.userIds.size}/${entry.playerCount} players remaining.`);
   }
 }
 
@@ -217,9 +240,13 @@ let commands = {
     description: 'Feeling too good about yourself? Tired of compliments? Is your name "Sarah"? Try this command to get insulted and taken down a peg.',
     invoke: insult
   },
-  'letsplay': {
-    description: 'Join a lobby for this channel; when enough players join (default 4), everyone gets tagged. EX: !letsplay 4',
-    invoke: letsplay
+  'joinlobby': {
+    description: 'Join a lobby for this channel; when enough players join (default 4), everyone gets tagged. EX: !joinlobby 4',
+    invoke: joinlobby
+  },
+  'leavelobby': {
+    description: 'Leave the lobby for this channel.',
+    invoke: leavelobby
   },
   'inspireme': {
     description: 'Get an Inspirobot generated inspirational image.',
