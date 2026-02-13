@@ -124,6 +124,41 @@ async function editMessage(msg) {
   await message.edit(updatedMessage);
 }
 
+const letsPlayChannelMap = {};
+
+function clearLetsPlayChannelMap() {
+  for (const k of Object.keys(letsPlayChannelMap)) {
+    delete letsPlayChannelMap[k];
+  }
+}
+
+function letsplay(msg) {
+  const parts = msg.content.trim().split(/\s+/);
+  const playerCountArg = parts[1];
+  let playerCount = playerCountArg ? parseInt(playerCountArg, 10) : 4;
+  if (isNaN(playerCount) || playerCount < 1) {
+    playerCount = 4;
+  }
+  const channelId = msg.channel.id;
+  const userId = msg.author.id;
+
+  const entry = letsPlayChannelMap[channelId];
+  if (!entry || entry.userIds.size === 0) {
+    letsPlayChannelMap[channelId] = { playerCount, userIds: new Set([userId]) };
+  } else {
+    entry.userIds.add(userId);
+  }
+
+  const current = letsPlayChannelMap[channelId];
+  if (current.playerCount <= current.userIds.size) {
+    const mentions = [...current.userIds].map(id => `<@${id}>`).join(', ');
+    delete letsPlayChannelMap[channelId];
+    msg.channel.send(`It's time to play: ${mentions}`);
+  } else {
+    msg.channel.send(`${msg.author.username} joined the lobby. ${current.userIds.size}/${current.playerCount} players so far.`);
+  }
+}
+
 const pollNotation = ['0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
 const makePoll = (msg) => {
   let content = msg.content.slice(5);
@@ -182,6 +217,10 @@ let commands = {
     description: 'Feeling too good about yourself? Tired of compliments? Is your name "Sarah"? Try this command to get insulted and taken down a peg.',
     invoke: insult
   },
+  'letsplay': {
+    description: 'Join a lobby for this channel; when enough players join (default 4), everyone gets tagged. EX: !letsplay 4',
+    invoke: letsplay
+  },
   'inspireme': {
     description: 'Get an Inspirobot generated inspirational image.',
     invoke: inspiration
@@ -238,5 +277,5 @@ async function getApiCall(url, queryParams, headers, onSuccess, onError = consol
   }
 }
 
-module.exports = { botIntents, commands }
+module.exports = { botIntents, commands, clearLetsPlayChannelMap }
 

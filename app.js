@@ -1,6 +1,6 @@
 const { Client, GuildScheduledEventStatus } = require('discord.js');
 const schedule = require('node-schedule');
-const { botIntents, commands } = require('./config/config');
+const { botIntents, commands, clearLetsPlayChannelMap } = require('./config/config');
 const config = require('./config/default');
 
 const client = new Client({
@@ -46,6 +46,15 @@ schedule.scheduleJob({
     second: 0
 }, () => {
   alertAttendees();
+});
+
+// 2am daily: clear letsplay lobbies
+schedule.scheduleJob({
+  hour: 2,
+  minute: 0,
+  second: 0
+}, () => {
+  clearLetsPlayChannelMap();
 });
 function alertAttendees() {
   const currentDate = new Date();
