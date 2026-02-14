@@ -124,11 +124,11 @@ async function editMessage(msg) {
   await message.edit(updatedMessage);
 }
 
-const letsPlayChannelMap = {};
+const lobbyChannelMap = {};
 
 function clearLetsPlayChannelMap() {
-  for (const k of Object.keys(letsPlayChannelMap)) {
-    delete letsPlayChannelMap[k];
+  for (const k of Object.keys(lobbyChannelMap)) {
+    delete lobbyChannelMap[k];
   }
 }
 
@@ -142,19 +142,19 @@ function joinlobby(msg) {
   const channelId = msg.channel.id;
   const userId = msg.author.id;
 
-  const entry = letsPlayChannelMap[channelId];
+  const entry = lobbyChannelMap[channelId];
   let alreadyInLobby = false;
   if (!entry || entry.userIds.size === 0) {
-    letsPlayChannelMap[channelId] = { playerCount, userIds: new Set([userId]) };
+    lobbyChannelMap[channelId] = { playerCount, userIds: new Set([userId]) };
   } else {
     alreadyInLobby = entry.userIds.has(userId);
     entry.userIds.add(userId);
   }
 
-  const current = letsPlayChannelMap[channelId];
+  const current = lobbyChannelMap[channelId];
   if (current.playerCount <= current.userIds.size) {
     const mentions = [...current.userIds].map(id => `<@${id}>`).join(', ');
-    delete letsPlayChannelMap[channelId];
+    delete lobbyChannelMap[channelId];
     msg.channel.send(`It's time to play: ${mentions}`);
   } else {
     if (alreadyInLobby) {
@@ -168,18 +168,53 @@ function joinlobby(msg) {
 function leavelobby(msg) {
   const channelId = msg.channel.id;
   const userId = msg.author.id;
-  const entry = letsPlayChannelMap[channelId];
+  const entry = lobbyChannelMap[channelId];
   if (!entry || !entry.userIds.has(userId)) {
     msg.channel.send(`${msg.author.username} is not in the lobby.`);
     return;
   }
   entry.userIds.delete(userId);
   if (entry.userIds.size === 0) {
-    delete letsPlayChannelMap[channelId];
+    delete lobbyChannelMap[channelId];
     msg.channel.send(`${msg.author.username} left the lobby. The lobby is now empty.`);
   } else {
     msg.channel.send(`${msg.author.username} left the lobby. ${entry.userIds.size}/${entry.playerCount} players remaining.`);
   }
+}
+
+async function lobby(msg) {
+  const channelId = msg.channel.id;
+  const entry = lobbyChannelMap[channelId];
+  if (!entry || entry.userIds.size === 0) {
+    msg.channel.send('There is no lobby for this channel.');
+    return;
+  }
+  if (!msg.guild) {
+    msg.channel.send('No lobby here.');
+    return;
+  }
+  const usernames = await Promise.all(
+    [...entry.userIds].map(id =>
+      msg.guild.members.fetch(id).then(m => m.user.username).catch(() => '(unknown)')
+    )
+  );
+  const countStr = `${entry.userIds.size}/${entry.playerCount}`;
+  msg.channel.send(`Current Lobby (${countStr}): ${usernames.join(', ')}`);
+}
+
+function popLobby(msg) {
+  const channelId = msg.channel.id;
+  const entry = lobbyChannelMap[channelId];
+  if (!entry || entry.userIds.size === 0) {
+    msg.channel.send('There is no lobby for this channel.');
+    return;
+  }
+  const targetId = [...entry.userIds][0];
+  entry.userIds.delete(targetId);
+  if (entry.userIds.size === 0) {
+    delete lobbyChannelMap[channelId];
+  }
+  msg.channel.send(`<@${targetId}>, join the game with ${msg.author.username}!`);
 }
 
 const pollNotation = ['0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
@@ -247,6 +282,14 @@ let commands = {
   'leavelobby': {
     description: 'Leave the lobby for this channel.',
     invoke: leavelobby
+  },
+  'lobby': {
+    description: 'Check the status of this channel\'s lobby.',
+    invoke: lobby
+  },
+  'popLobby': {
+    description: 'Take the first player from the lobby and invite them to join your game.',
+    invoke: popLobby
   },
   'inspireme': {
     description: 'Get an Inspirobot generated inspirational image.',
