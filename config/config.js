@@ -287,7 +287,7 @@ let commands = {
     description: 'Check the status of this channel\'s lobby.',
     invoke: lobby
   },
-  'popLobby': {
+  'poplobby': {
     description: 'Take the first player from the lobby and invite them to join your game.',
     invoke: popLobby
   },
