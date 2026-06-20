@@ -63,7 +63,7 @@ async function fetchCardNames(seed) {
     const html = await fetchText(`https://cubecobra.com/cube/samplepack/${CUBE_ID}/${seed}`);
     const match = html.match(/window\.reactProps\s*=\s*([\s\S]*?);\s*<\/script>/);
     if (!match) return cardNames;
-    const props = JSON.parse(match[1]);
+    const props = JSON.parse(match[1].replace(/:\s*undefined\b/g, ':null'));
     (props.pack ?? []).forEach((card, i) => {
       const row = Math.floor(i / 5) + 1;
       const col = (i % 5) + 1;
