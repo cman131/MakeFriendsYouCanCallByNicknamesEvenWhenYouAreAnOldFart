@@ -1,5 +1,21 @@
-const r2 = require('r2');
+const https = require('https');
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+
+function fetchText(url) {
+  return new Promise((resolve, reject) => {
+    https.get(url, { headers: { 'Accept': 'text/html' } }, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        fetchText(res.headers.location).then(resolve).catch(reject);
+        res.resume();
+        return;
+      }
+      const chunks = [];
+      res.on('data', chunk => chunks.push(chunk));
+      res.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+      res.on('error', reject);
+    }).on('error', reject);
+  });
+}
 
 const CUBE_ID = 'c0510d57-2efa-4df3-9df8-22bde1e0e08f';
 const CHANNEL_IDS = ['1516781329633509396', '368545752580096011'];
@@ -44,7 +60,7 @@ function buildTallyText(counts, cardNames) {
 async function fetchCardNames(seed) {
   const cardNames = new Map();
   try {
-    const html = await r2.get(`https://cubecobra.com/cube/samplepack/${CUBE_ID}/${seed}`).text;
+    const html = await fetchText(`https://cubecobra.com/cube/samplepack/${CUBE_ID}/${seed}`);
     const match = html.match(/window\.reactProps\s*=\s*([\s\S]*?);\s*<\/script>/);
     if (!match) return cardNames;
     const props = JSON.parse(match[1]);
