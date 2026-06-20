@@ -103,7 +103,7 @@ async function postPackToChannel(channel) {
   const { cardNames, cards } = await fetchPackCards(seed);
   const rows = buildPackRows(cardNames);
   const msg = await channel.send({ content: baseContent, components: rows });
-  getCollection('packSessions').insertOne({
+  await getCollection('packSessions').insertOne({
     messageId: msg.id,
     channelId: channel.id,
     cubeId: CUBE_ID,
@@ -130,18 +130,18 @@ async function handlePackVote(interaction) {
   const session = await getCollection('packSessions').findOneAndUpdate(
     { messageId, 'votes.userId': { $ne: interaction.user.id } },
     { $push: { votes: { userId: interaction.user.id, pick, votedAt: new Date() } } },
-    { returnDocument: 'after' }
+    { returnDocument: 'after', maxTimeMS: 2000 }
   );
 
   if (!session) {
-    const exists = await getCollection('packSessions').findOne({ messageId }, { projection: { _id: 1 } });
+    const exists = await getCollection('packSessions').findOne({ messageId }, { projection: { _id: 1 }, maxTimeMS: 2000 });
     if (!exists) {
-      return interaction.reply({ content: 'Vote state not found (bot may have restarted).', ephemeral: true });
+      return interaction.reply({ content: 'Pack session not found.', ephemeral: true });
     }
     return interaction.reply({ content: 'You already voted!', ephemeral: true });
   }
 
-  const cardNames = new Map(session.cards.filter(c => c.name).map(c => [c.pick, c.name]));
+  const cardNames = new Map((session.cards ?? []).filter(c => c.name).map(c => [c.pick, c.name]));
   const counts = new Map();
   for (const { pick: p } of session.votes) {
     counts.set(p, (counts.get(p) ?? 0) + 1);
