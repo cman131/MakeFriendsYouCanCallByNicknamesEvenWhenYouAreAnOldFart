@@ -1,7 +1,7 @@
 const { Client, GuildScheduledEventStatus } = require('discord.js');
 const schedule = require('node-schedule');
 const { botIntents, commands, clearLetsPlayChannelMap } = require('./config/config');
-const { postPackOfTheDay, handlePackVote, restorePackSessions } = require('./config/pack-of-the-day');
+const { postPackOfTheDay, handlePackVote } = require('./config/pack-of-the-day');
 const { connectDb } = require('./config/db');
 const config = require('./config/default');
 
@@ -10,9 +10,8 @@ const client = new Client({
   partials: ['CHANNEL', 'MESSAGE', 'GUILDSCHEDULEDEVENT', 'USER', 'GUILDMEMBER'],
 });
 
-client.on('ready', async () => {
+client.on('ready', () => {
   console.log('Logged in as ' + client.user.tag);
-  await restorePackSessions().catch(e => console.error('Session restore failed:', e));
 });
 
 const prefix = '!';
