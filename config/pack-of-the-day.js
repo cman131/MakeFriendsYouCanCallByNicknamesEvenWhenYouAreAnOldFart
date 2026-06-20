@@ -94,7 +94,7 @@ async function fetchPackCards(seed) {
       });
     });
   } catch (e) {
-    console.log(`Failed to fetch pack card names: ${e}`);
+    console.error(`Failed to fetch pack card names: ${e}`);
   }
   return { cardNames, cards };
 }
@@ -162,7 +162,7 @@ async function restorePackSessions() {
     .find({ postedAt: { $gte: startOfDay } })
     .toArray();
   for (const session of sessions) {
-    const cardNames = new Map(session.cards.map(c => [c.pick, c.name]));
+    const cardNames = new Map(session.cards.filter(c => c.name).map(c => [c.pick, c.name]));
     const userVotes = new Map(session.votes.map(v => [v.userId, v.pick]));
     const counts = new Map();
     for (const { pick } of session.votes) {
