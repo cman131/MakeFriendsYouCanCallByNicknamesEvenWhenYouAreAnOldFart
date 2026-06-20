@@ -6,8 +6,15 @@ const DB_NAME = 'datbotdoh';
 let client;
 
 async function connectDb() {
-  client = new MongoClient(uri);
-  await client.connect();
+  if (client) return;
+  const c = new MongoClient(uri);
+  try {
+    await c.connect();
+  } catch (err) {
+    await c.close().catch(() => {});
+    throw err;
+  }
+  client = c;
   const col = client.db(DB_NAME).collection('packSessions');
   await col.createIndex({ messageId: 1 }, { unique: true });
   await col.createIndex({ postedAt: 1 });
@@ -15,6 +22,7 @@ async function connectDb() {
 }
 
 function getCollection(name) {
+  if (!client) throw new Error('DB not connected. Call connectDb() first.');
   return client.db(DB_NAME).collection(name);
 }
 
