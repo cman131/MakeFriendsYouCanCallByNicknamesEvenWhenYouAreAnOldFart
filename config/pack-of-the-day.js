@@ -66,7 +66,7 @@ function buildTallyText(counts, cardNames) {
     const label = name ? `${name} (${pick})` : pick;
     return `${i + 1}. ${label}: ${Math.round(n / total * 100)}%`;
   }).join('\n');
-  return `\nVotes (${total} total):\n${parts}`;
+  return `\nVotes (${total} total):\n||${parts}||`;
 }
 
 async function fetchCardNames(seed) {
@@ -124,7 +124,7 @@ function handlePackVote(interaction) {
   state.userVotes.set(interaction.user.id, pick);
   state.counts.set(pick, (state.counts.get(pick) ?? 0) + 1);
 
-  const newContent = state.baseContent + buildTallyText(state.counts, state.cardNames);
+  const newContent = state.baseContent + '\n----' + buildTallyText(state.counts, state.cardNames) + '\n----';
   return interaction.update({ content: newContent, components: buildPackRows(state.cardNames) });
 }
 
