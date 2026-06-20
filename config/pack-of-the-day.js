@@ -1,5 +1,6 @@
 const https = require('https');
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { getCollection } = require('./db');
 
 function fetchText(url) {
   return new Promise((resolve, reject) => {
@@ -69,30 +70,40 @@ function buildTallyText(counts, cardNames) {
   return `\nVotes (${total} total):\n||${parts}||`;
 }
 
-async function fetchCardNames(seed) {
+async function fetchPackCards(seed) {
   const cardNames = new Map();
+  const cards = [];
   try {
     const html = await fetchText(`https://cubecobra.com/cube/samplepack/${CUBE_ID}/${seed}`);
     const match = html.match(/window\.reactProps\s*=\s*([\s\S]*?);\s*<\/script>/);
-    if (!match) return cardNames;
+    if (!match) return { cardNames, cards };
     const props = JSON.parse(match[1].replace(/:\s*undefined\b/g, ':null'));
     (props.pack ?? []).forEach((card, i) => {
       const row = Math.floor(i / 5) + 1;
       const col = (i % 5) + 1;
+      const pick = `${row}-${col}`;
       const name = card.details?.name ?? card.name;
-      if (name) cardNames.set(`${row}-${col}`, name);
+      if (name) cardNames.set(pick, name);
+      cards.push({
+        pick,
+        name: name ?? null,
+        color_identity: card.details?.color_identity,
+        scryfall_id: card.details?.scryfall_id,
+        cmc: card.details?.cmc,
+        type: card.details?.type,
+      });
     });
   } catch (e) {
     console.log(`Failed to fetch pack card names: ${e}`);
   }
-  return cardNames;
+  return { cardNames, cards };
 }
 
 async function postPackToChannel(channel) {
   const seed = randomSeed();
   const imageUrl = `https://cubecobra.com/cube/samplepackimage/${CUBE_ID}/${seed}`;
   const baseContent = `New day, new pack!\nWhat is your pack 1 pick 1?\n\n${imageUrl}`;
-  const cardNames = await fetchCardNames(seed);
+  const { cardNames, cards } = await fetchPackCards(seed);
   const rows = buildPackRows(cardNames);
   const msg = await channel.send({ content: baseContent, components: rows });
   packVoteState.set(msg.id, {
@@ -101,6 +112,17 @@ async function postPackToChannel(channel) {
     counts: new Map(),
     cardNames,
   });
+  getCollection('packSessions').insertOne({
+    messageId: msg.id,
+    channelId: channel.id,
+    cubeId: CUBE_ID,
+    seed,
+    imageUrl,
+    baseContent,
+    postedAt: new Date(),
+    cards,
+    votes: [],
+  }).catch(e => console.error('Pack DB insert failed:', e));
 }
 
 function postPackOfTheDay(client) {
@@ -110,7 +132,7 @@ function postPackOfTheDay(client) {
   }
 }
 
-function handlePackVote(interaction) {
+async function handlePackVote(interaction) {
   const pick = interaction.customId.replace('pack_vote_', '');
   const state = packVoteState.get(interaction.message.id);
 
@@ -124,8 +146,36 @@ function handlePackVote(interaction) {
   state.userVotes.set(interaction.user.id, pick);
   state.counts.set(pick, (state.counts.get(pick) ?? 0) + 1);
 
+  getCollection('packSessions').updateOne(
+    { messageId: interaction.message.id },
+    { $push: { votes: { userId: interaction.user.id, pick, votedAt: new Date() } } }
+  ).catch(e => console.error('Vote DB write failed:', e));
+
   const newContent = state.baseContent + '\n----' + buildTallyText(state.counts, state.cardNames) + '\n----';
   return interaction.update({ content: newContent, components: buildPackRows(state.cardNames) });
 }
 
-module.exports = { postPackOfTheDay, postPackToChannel, handlePackVote };
+async function restorePackSessions() {
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+  const sessions = await getCollection('packSessions')
+    .find({ postedAt: { $gte: startOfDay } })
+    .toArray();
+  for (const session of sessions) {
+    const cardNames = new Map(session.cards.map(c => [c.pick, c.name]));
+    const userVotes = new Map(session.votes.map(v => [v.userId, v.pick]));
+    const counts = new Map();
+    for (const { pick } of session.votes) {
+      counts.set(pick, (counts.get(pick) ?? 0) + 1);
+    }
+    packVoteState.set(session.messageId, {
+      baseContent: session.baseContent,
+      userVotes,
+      counts,
+      cardNames,
+    });
+  }
+  console.log(`Restored ${sessions.length} pack session(s) from MongoDB`);
+}
+
+module.exports = { postPackOfTheDay, postPackToChannel, handlePackVote, restorePackSessions };
