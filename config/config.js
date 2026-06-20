@@ -2,6 +2,7 @@ const { GatewayIntentBits, GuildScheduledEventStatus } = require('discord.js');
 const querystring = require('querystring');
 const config = require('./default');
 const r2 = require('r2');
+const { postPackToChannel } = require('./pack-of-the-day');
 
 const botIntents = [
   GatewayIntentBits.DirectMessages,
@@ -242,6 +243,10 @@ let commands = {
   'catnow': {
     description: 'When you, for some unexplained reason, are confused and desire a cat picture instead of a dog one.',
     invoke: getCat
+  },
+  'packnow': {
+    description: 'Force a pack of the day post in the current channel.',
+    invoke: (msg) => postPackToChannel(msg.channel)
   },
   'dognow': {
     description: 'When you need a doggy picture right the heckity heck now.',

@@ -1,6 +1,7 @@
 const { Client, GuildScheduledEventStatus } = require('discord.js');
 const schedule = require('node-schedule');
 const { botIntents, commands, clearLetsPlayChannelMap } = require('./config/config');
+const { postPackOfTheDay } = require('./config/pack-of-the-day');
 const config = require('./config/default');
 
 const client = new Client({
@@ -48,6 +49,15 @@ schedule.scheduleJob({
   alertAttendees();
 });
 
+// 10am EST (3pm GMT)
+schedule.scheduleJob({
+  hour: 15,
+  minute: 0,
+  second: 0
+}, () => {
+  postPackOfTheDay(client);
+});
+
 // 2am daily: clear letsplay lobbies
 schedule.scheduleJob({
   hour: 2,
@@ -56,6 +66,7 @@ schedule.scheduleJob({
 }, () => {
   clearLetsPlayChannelMap();
 });
+
 function alertAttendees() {
   const currentDate = new Date();
   client.guilds.cache.forEach(guild => {
