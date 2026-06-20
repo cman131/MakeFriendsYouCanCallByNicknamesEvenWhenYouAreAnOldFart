@@ -1,7 +1,8 @@
 const { Client, GuildScheduledEventStatus } = require('discord.js');
 const schedule = require('node-schedule');
 const { botIntents, commands, clearLetsPlayChannelMap } = require('./config/config');
-const { postPackOfTheDay, handlePackVote } = require('./config/pack-of-the-day');
+const { postPackOfTheDay, handlePackVote, restorePackSessions } = require('./config/pack-of-the-day');
+const { connectDb } = require('./config/db');
 const config = require('./config/default');
 
 const client = new Client({
@@ -9,11 +10,20 @@ const client = new Client({
   partials: ['CHANNEL', 'MESSAGE', 'GUILDSCHEDULEDEVENT', 'USER', 'GUILDMEMBER'],
 });
 
-client.on('ready', () => {
+client.on('ready', async () => {
   console.log('Logged in as ' + client.user.tag);
+  await restorePackSessions().catch(e => console.error('Session restore failed:', e));
 });
 
-client.login(config.DISCORD_TOKEN);
+(async () => {
+  try {
+    await connectDb();
+  } catch (err) {
+    console.error('Failed to connect to MongoDB:', err);
+    process.exit(1);
+  }
+  client.login(config.DISCORD_TOKEN);
+})();
 const prefix = '!';
 
 client.on('messageCreate', (msg) => {
@@ -58,7 +68,7 @@ schedule.scheduleJob({
 
 // 10am EST (3pm GMT)
 schedule.scheduleJob({
-  hour: 15,
+  hour: 14,
   minute: 0,
   second: 0
 }, () => {
