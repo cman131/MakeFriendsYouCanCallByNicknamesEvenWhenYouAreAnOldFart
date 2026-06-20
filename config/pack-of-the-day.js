@@ -27,7 +27,18 @@ function randomSeed() {
   return Math.floor(Math.random() * (9999999999999 - 1000000000000 + 1)) + 1000000000000;
 }
 
-function buildPackRows() {
+const LABEL_FILTER = new Set(['a', 'an', 'the', 'of']);
+
+function getButtonLabel(pick, cardNames) {
+  const name = cardNames?.get(pick);
+  if (!name) return pick.replace('-', '');
+  const words = name.split(' ').filter(w => !LABEL_FILTER.has(w.toLowerCase()));
+  if (words.length >= 2) return words.map(w => w[0].toUpperCase()).join('');
+  if (words.length === 1) return words[0][0] + words[0][1];
+  return pick.replace('-', '');
+}
+
+function buildPackRows(cardNames) {
   const rows = [];
   for (let r = 1; r <= 3; r++) {
     const row = new ActionRowBuilder();
@@ -36,7 +47,7 @@ function buildPackRows() {
       row.addComponents(
         new ButtonBuilder()
           .setCustomId(`pack_vote_${pick}`)
-          .setLabel(pick)
+          .setLabel(getButtonLabel(pick, cardNames))
           .setStyle(ButtonStyle.Primary)
       );
     }
@@ -49,11 +60,12 @@ function buildTallyText(counts, cardNames) {
   const nonZero = [...counts.entries()].filter(([, n]) => n > 0);
   if (nonZero.length === 0) return '';
   const total = nonZero.reduce((sum, [, n]) => sum + n, 0);
-  const parts = nonZero.map(([pick, n]) => {
+  const sorted = nonZero.sort(([, a], [, b]) => b - a).slice(0, 5);
+  const parts = sorted.map(([pick, n], i) => {
     const name = cardNames?.get(pick);
     const label = name ? `${name} (${pick})` : pick;
-    return `${label}: ${Math.round(n / total * 100)}%`;
-  }).join(' | ');
+    return `${i + 1}. ${label}: ${Math.round(n / total * 100)}%`;
+  }).join('\n');
   return `\nVotes (${total} total):\n${parts}`;
 }
 
@@ -81,7 +93,7 @@ async function postPackToChannel(channel) {
   const imageUrl = `https://cubecobra.com/cube/samplepackimage/${CUBE_ID}/${seed}`;
   const baseContent = `New day, new pack!\nWhat is your pack 1 pick 1?\n\n${imageUrl}`;
   const cardNames = await fetchCardNames(seed);
-  const rows = buildPackRows();
+  const rows = buildPackRows(cardNames);
   const msg = await channel.send({ content: baseContent, components: rows });
   packVoteState.set(msg.id, {
     baseContent,
@@ -113,7 +125,7 @@ function handlePackVote(interaction) {
   state.counts.set(pick, (state.counts.get(pick) ?? 0) + 1);
 
   const newContent = state.baseContent + buildTallyText(state.counts, state.cardNames);
-  return interaction.update({ content: newContent, components: buildPackRows() });
+  return interaction.update({ content: newContent, components: buildPackRows(state.cardNames) });
 }
 
 module.exports = { postPackOfTheDay, postPackToChannel, handlePackVote };
