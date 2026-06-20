@@ -13,6 +13,7 @@
   "license": "ISC",
   "dependencies": {
     "discord.js": "^14.13.0",
+    "mongodb": "^7.3.0",
     "node-schedule": "^2.1.1",
     "querystring": "^0.2.1",
     "r2": "^2.0.1"
