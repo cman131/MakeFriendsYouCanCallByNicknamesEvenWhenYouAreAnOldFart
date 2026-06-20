@@ -1,7 +1,7 @@
 const { Client, GuildScheduledEventStatus } = require('discord.js');
 const schedule = require('node-schedule');
 const { botIntents, commands, clearLetsPlayChannelMap } = require('./config/config');
-const { postPackOfTheDay } = require('./config/pack-of-the-day');
+const { postPackOfTheDay, handlePackVote } = require('./config/pack-of-the-day');
 const config = require('./config/default');
 
 const client = new Client({
@@ -32,6 +32,13 @@ client.on('messageCreate', (msg) => {
 
   if (userCmd in commands) {
     commands[userCmd].invoke(msg);
+  }
+});
+
+client.on('interactionCreate', (interaction) => {
+  if (!interaction.isButton()) return;
+  if (interaction.customId.startsWith('pack_vote_')) {
+    handlePackVote(interaction);
   }
 });
 
