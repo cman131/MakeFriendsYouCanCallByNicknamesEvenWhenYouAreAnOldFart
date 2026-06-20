@@ -15,6 +15,8 @@ client.on('ready', async () => {
   await restorePackSessions().catch(e => console.error('Session restore failed:', e));
 });
 
+const prefix = '!';
+
 (async () => {
   try {
     await connectDb();
@@ -22,9 +24,11 @@ client.on('ready', async () => {
     console.error('Failed to connect to MongoDB:', err);
     process.exit(1);
   }
-  client.login(config.DISCORD_TOKEN);
+  client.login(config.DISCORD_TOKEN).catch(err => {
+    console.error('Failed to log in to Discord:', err);
+    process.exit(1);
+  });
 })();
-const prefix = '!';
 
 client.on('messageCreate', (msg) => {
   if (msg.author.bot) return;
