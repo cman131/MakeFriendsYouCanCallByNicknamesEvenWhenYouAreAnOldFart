@@ -52,7 +52,7 @@ client.on('messageCreate', (msg) => {
 client.on('interactionCreate', (interaction) => {
   if (!interaction.isButton()) return;
   if (interaction.customId.startsWith('pack_vote_')) {
-    handlePackVote(interaction);
+    handlePackVote(interaction).catch(e => console.error('Vote handler failed:', e));
   }
 });
 

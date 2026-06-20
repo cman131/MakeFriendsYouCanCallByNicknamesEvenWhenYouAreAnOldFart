@@ -157,7 +157,7 @@ async function handlePackVote(interaction) {
 
 async function restorePackSessions() {
   const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
+  startOfDay.setUTCHours(0, 0, 0, 0);
   const sessions = await getCollection('packSessions')
     .find({ postedAt: { $gte: startOfDay } })
     .toArray();
