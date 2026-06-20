@@ -21,9 +21,6 @@ function fetchText(url) {
 const CUBE_ID = 'c0510d57-2efa-4df3-9df8-22bde1e0e08f';
 const CHANNEL_IDS = ['1516781329633509396', '368545752580096011'];
 
-// messageId -> { baseContent, userVotes: Map<userId, pick>, counts: Map<pick, number>, cardNames: Map<pick, string> }
-const packVoteState = new Map();
-
 function randomSeed() {
   return Math.floor(Math.random() * (9999999999999 - 1000000000000 + 1)) + 1000000000000;
 }
@@ -106,12 +103,6 @@ async function postPackToChannel(channel) {
   const { cardNames, cards } = await fetchPackCards(seed);
   const rows = buildPackRows(cardNames);
   const msg = await channel.send({ content: baseContent, components: rows });
-  packVoteState.set(msg.id, {
-    baseContent,
-    userVotes: new Map(),
-    counts: new Map(),
-    cardNames,
-  });
   getCollection('packSessions').insertOne({
     messageId: msg.id,
     channelId: channel.id,
@@ -134,48 +125,29 @@ function postPackOfTheDay(client) {
 
 async function handlePackVote(interaction) {
   const pick = interaction.customId.replace('pack_vote_', '');
-  const state = packVoteState.get(interaction.message.id);
+  const messageId = interaction.message.id;
 
-  if (!state) {
-    return interaction.reply({ content: 'Vote state not found (bot may have restarted).', ephemeral: true });
-  }
-  if (state.userVotes.has(interaction.user.id)) {
+  const session = await getCollection('packSessions').findOneAndUpdate(
+    { messageId, 'votes.userId': { $ne: interaction.user.id } },
+    { $push: { votes: { userId: interaction.user.id, pick, votedAt: new Date() } } },
+    { returnDocument: 'after' }
+  );
+
+  if (!session) {
+    const exists = await getCollection('packSessions').findOne({ messageId }, { projection: { _id: 1 } });
+    if (!exists) {
+      return interaction.reply({ content: 'Vote state not found (bot may have restarted).', ephemeral: true });
+    }
     return interaction.reply({ content: 'You already voted!', ephemeral: true });
   }
 
-  state.userVotes.set(interaction.user.id, pick);
-  state.counts.set(pick, (state.counts.get(pick) ?? 0) + 1);
-
-  getCollection('packSessions').updateOne(
-    { messageId: interaction.message.id },
-    { $push: { votes: { userId: interaction.user.id, pick, votedAt: new Date() } } }
-  ).catch(e => console.error('Vote DB write failed:', e));
-
-  const newContent = state.baseContent + '\n----' + buildTallyText(state.counts, state.cardNames) + '\n----';
-  return interaction.update({ content: newContent, components: buildPackRows(state.cardNames) });
-}
-
-async function restorePackSessions() {
-  const startOfDay = new Date();
-  startOfDay.setUTCHours(0, 0, 0, 0);
-  const sessions = await getCollection('packSessions')
-    .find({ postedAt: { $gte: startOfDay } })
-    .toArray();
-  for (const session of sessions) {
-    const cardNames = new Map(session.cards.filter(c => c.name).map(c => [c.pick, c.name]));
-    const userVotes = new Map(session.votes.map(v => [v.userId, v.pick]));
-    const counts = new Map();
-    for (const { pick } of session.votes) {
-      counts.set(pick, (counts.get(pick) ?? 0) + 1);
-    }
-    packVoteState.set(session.messageId, {
-      baseContent: session.baseContent,
-      userVotes,
-      counts,
-      cardNames,
-    });
+  const cardNames = new Map(session.cards.filter(c => c.name).map(c => [c.pick, c.name]));
+  const counts = new Map();
+  for (const { pick: p } of session.votes) {
+    counts.set(p, (counts.get(p) ?? 0) + 1);
   }
-  console.log(`Restored ${sessions.length} pack session(s) from MongoDB`);
+  const newContent = session.baseContent + '\n----' + buildTallyText(counts, cardNames) + '\n----';
+  return interaction.update({ content: newContent, components: buildPackRows(cardNames) });
 }
 
-module.exports = { postPackOfTheDay, postPackToChannel, handlePackVote, restorePackSessions };
+module.exports = { postPackOfTheDay, postPackToChannel, handlePackVote };
