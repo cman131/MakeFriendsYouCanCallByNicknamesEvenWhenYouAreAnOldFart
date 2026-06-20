@@ -27,7 +27,7 @@ function randomSeed() {
   return Math.floor(Math.random() * (9999999999999 - 1000000000000 + 1)) + 1000000000000;
 }
 
-const LABEL_FILTER = new Set(['a', 'an', 'the', 'of']);
+const LABEL_FILTER = new Set(['a', 'an', 'the', 'of', 'to', 'and', 'or', 'in', 'on', 'at', 'for', 'with']);
 
 function getButtonLabel(pick, cardNames) {
   const name = cardNames?.get(pick);
