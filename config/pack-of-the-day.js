@@ -61,7 +61,7 @@ function buildTallyText(counts, cardNames) {
   const sorted = nonZero.sort(([, a], [, b]) => b - a).slice(0, 5);
   const parts = sorted.map(([pick, n], i) => {
     const name = cardNames?.get(pick);
-    const label = name ? `${name} (${pick})` : pick;
+    const label = name ? `${name} (${n})` : `${pick} (${n})`;
     return `${i + 1}. ${label}: ${Math.round(n / total * 100)}%`;
   }).join('\n');
   return `\nVotes (${total} total):\n||${parts}||`;
@@ -134,11 +134,21 @@ async function handlePackVote(interaction) {
   );
 
   if (!session) {
-    const exists = await getCollection('packSessions').findOne({ messageId }, { projection: { _id: 1 }, maxTimeMS: 2000 });
-    if (!exists) {
+    const existing = await getCollection('packSessions').findOne(
+      { messageId },
+      { projection: { cards: 1, votes: 1 }, maxTimeMS: 2000 }
+    );
+    if (!existing) {
       return interaction.reply({ content: 'Pack session not found.', ephemeral: true });
     }
-    return interaction.reply({ content: 'You already voted!', ephemeral: true });
+    const userVote = existing.votes?.find(v => v.userId === interaction.user.id);
+    const priorCardName = userVote
+      ? new Map((existing.cards ?? []).filter(c => c.name).map(c => [c.pick, c.name])).get(userVote.pick)
+      : null;
+    const alreadyVotedMsg = priorCardName
+      ? `You already voted for ${priorCardName}!`
+      : 'You already voted!';
+    return interaction.reply({ content: alreadyVotedMsg, ephemeral: true });
   }
 
   const cardNames = new Map((session.cards ?? []).filter(c => c.name).map(c => [c.pick, c.name]));
