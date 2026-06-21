@@ -2,6 +2,7 @@ const { Client, GuildScheduledEventStatus } = require('discord.js');
 const schedule = require('node-schedule');
 const { botIntents, commands, clearLetsPlayChannelMap } = require('./config/config');
 const { postPackOfTheDay, handlePackVote } = require('./config/pack-of-the-day');
+const { postBannedRestricted } = require('./config/banned-restricted');
 const { connectDb } = require('./config/db');
 const config = require('./config/default');
 
@@ -61,30 +62,43 @@ client.on('interactionCreate', (interaction) => {
 //});
 
 // 5pm EST (10pm GMT)
-schedule.scheduleJob({
-    hour: 22,
-    minute: 0,
-    second: 0
-}, () => {
+const eventAlertRule = new schedule.RecurrenceRule();
+eventAlertRule.hour = 17;
+eventAlertRule.minute = 0;
+eventAlertRule.second = 0;
+eventAlertRule.tz = 'America/New_York';
+schedule.scheduleJob(eventAlertRule, () => {
   alertAttendees();
 });
 
 // 10am EST (3pm GMT)
-schedule.scheduleJob({
-  hour: 14,
-  minute: 0,
-  second: 0
-}, () => {
+const packQuizRule = new schedule.RecurrenceRule();
+packQuizRule.hour = 10;
+packQuizRule.minute = 0;
+packQuizRule.second = 0;
+packQuizRule.tz = 'America/New_York';
+schedule.scheduleJob(packQuizRule, () => {
   postPackOfTheDay(client);
 });
 
 // 2am daily: clear letsplay lobbies
-schedule.scheduleJob({
-  hour: 2,
-  minute: 0,
-  second: 0
-}, () => {
+const lobbyRule = new schedule.RecurrenceRule();
+lobbyRule.hour = 2;
+lobbyRule.minute = 0;
+lobbyRule.second = 0;
+lobbyRule.tz = 'America/New_York';
+schedule.scheduleJob(lobbyRule, () => {
   clearLetsPlayChannelMap();
+});
+
+// 11:30am US Eastern: check for a new Banned & Restricted announcement
+const brRule = new schedule.RecurrenceRule();
+brRule.hour = 11;
+brRule.minute = 30;
+brRule.second = 0;
+brRule.tz = 'America/New_York';
+schedule.scheduleJob(brRule, () => {
+  postBannedRestricted(client);
 });
 
 function alertAttendees() {

@@ -16,7 +16,8 @@
     "mongodb": "^7.3.0",
     "node-schedule": "^2.1.1",
     "querystring": "^0.2.1",
-    "r2": "^2.0.1"
+    "r2": "^2.0.1",
+    "rss-parser": "^3.13.0"
   },
   "devDependencies": {
     "@types/node": "^26.0.0",

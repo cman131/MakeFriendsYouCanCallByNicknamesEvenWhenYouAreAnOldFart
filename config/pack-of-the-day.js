@@ -29,11 +29,17 @@ const LABEL_FILTER = new Set(['a', 'an', 'the', 'of', 'to', 'and', 'or', 'in', '
 
 function getButtonLabel(pick, cardNames) {
   const name = cardNames?.get(pick);
-  if (!name) return pick.replace('-', '');
+  let buttonLabel = pick.replace('-', '');
+  if (!name) return buttonLabel;
   const words = name.split(' ').filter(w => !LABEL_FILTER.has(w.toLowerCase()));
-  if (words.length >= 2) return words.map(w => w[0].toUpperCase()).join('');
-  if (words.length === 1) return words[0][0] + words[0][1];
-  return pick.replace('-', '');
+  if (words.length >= 2) {
+    buttonLabel = words.map(w => w[0].toUpperCase()).join('');
+  }
+  if (words.length === 1)
+  {
+    buttonLabel = words[0][0] + words[0][1];
+  }
+  return buttonLabel.slice(0, 2);
 }
 
 function buildPackRows(cardNames) {
