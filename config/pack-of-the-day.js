@@ -19,7 +19,7 @@ function fetchText(url) {
 }
 
 const CUBE_ID = 'c0510d57-2efa-4df3-9df8-22bde1e0e08f';
-const CHANNEL_IDS = ['1516781329633509396', '368545752580096011'];
+const CHANNEL_IDS = ['1516781329633509396']; // 368545752580096011 #card-games pandaplaza
 
 function randomSeed() {
   return Math.floor(Math.random() * (9999999999999 - 1000000000000 + 1)) + 1000000000000;
