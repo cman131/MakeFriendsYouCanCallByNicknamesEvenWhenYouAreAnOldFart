@@ -13,6 +13,7 @@ const MTG_FORMATS = [
   'Alchemy', 'Historic', 'Timeless', 'Brawl', 'Competitive Brawl', 'Commander',
 ];
 const BAN_PATTERN = /\b(?:is banned|is restricted|is unbanned|is unrestricted)\b/i;
+const STRICT_BAN_RE = /^[A-Z][^,]+\s+is\s+(?:banned|restricted|unbanned|unrestricted)\.?$/i;
 
 function fetchHtml(url) {
   return new Promise((resolve, reject) => {
@@ -54,8 +55,9 @@ async function scrapeFormatChanges(url) {
 
       const body = section.slice(h2Match[0].length);
       const changeLines = [...body.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)]
-        .map(m => stripHtml(m[1]))
-        .filter(text => BAN_PATTERN.test(text));
+        .flatMap(m => m[1].replace(/<br\s*\/?>/gi, '\n').split('\n'))
+        .map(line => stripHtml(line))
+        .filter(text => STRICT_BAN_RE.test(text));
 
       if (changeLines.length === 0) continue;
 
