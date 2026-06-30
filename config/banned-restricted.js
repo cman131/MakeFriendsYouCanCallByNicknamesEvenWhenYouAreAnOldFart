@@ -1,3 +1,4 @@
+const https = require('https');
 const Parser = require('rss-parser');
 const { EmbedBuilder } = require('discord.js');
 const { getCollection } = require('./db');
@@ -6,6 +7,71 @@ const parser = new Parser();
 const FEED_URL = 'https://fetchrss.com/feed/1wbIs69eWCFo1wbIrWC6M2OQ.rss';
 const CHANNEL_ID = '1518247826587521185';
 const STATE_KEY = 'banned_restricted_last_link';
+
+const MTG_FORMATS = [
+  'Standard', 'Pioneer', 'Modern', 'Legacy', 'Vintage', 'Pauper',
+  'Alchemy', 'Historic', 'Timeless', 'Brawl', 'Competitive Brawl', 'Commander',
+];
+const BAN_PATTERN = /\b(?:is banned|is restricted|is unbanned|is unrestricted)\b/i;
+
+function fetchHtml(url) {
+  return new Promise((resolve, reject) => {
+    https.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' } }, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        return fetchHtml(res.headers.location).then(resolve).catch(reject);
+      }
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => resolve(data));
+    }).on('error', reject);
+  });
+}
+
+function stripHtml(html) {
+  return html
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+    .trim();
+}
+
+async function scrapeFormatChanges(url) {
+  try {
+    const html = await fetchHtml(url);
+    const sections = html.split(/<h2[^>]*>/i);
+    const lines = [];
+
+    for (const section of sections) {
+      const h2Match = section.match(/^([\s\S]*?)<\/h2>/i);
+      if (!h2Match) continue;
+
+      const formatName = stripHtml(h2Match[1]);
+      if (!MTG_FORMATS.some(f => f.toLowerCase() === formatName.toLowerCase())) continue;
+
+      const body = section.slice(h2Match[0].length);
+      const changeLines = [...body.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)]
+        .map(m => stripHtml(m[1]))
+        .filter(text => BAN_PATTERN.test(text));
+
+      if (changeLines.length === 0) continue;
+
+      if (changeLines.length === 1) {
+        lines.push(`**${formatName}**: ${changeLines[0]}`);
+      } else {
+        lines.push(`**${formatName}**:\n${changeLines.map(l => `• ${l}`).join('\n')}`);
+      }
+    }
+
+    return lines.join('\n');
+  } catch (err) {
+    console.error('Error scraping B&R format changes:', err);
+    return '';
+  }
+}
 
 async function postBannedRestricted(client) {
   try {
