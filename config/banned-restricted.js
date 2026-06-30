@@ -86,6 +86,8 @@ async function postBannedRestricted(client) {
   try {
     const feed = await parser.parseURL(FEED_URL);
 
+    // Find the newest B&R item anywhere in the feed (not just items[0]),
+    // since B&R is rarely the single most-recent article in a general news feed.
     const article = (feed.items || []).find(item => {
       const t = (item.title || '').toLowerCase();
       return t.includes('banned') || t.includes('restricted');
@@ -94,6 +96,7 @@ async function postBannedRestricted(client) {
 
     const col = getCollection('botState');
     const state = await col.findOne({ _id: STATE_KEY });
+    // Dedup against the last link we posted (persisted in Mongo).
     if (state && state.link === article.link) return;
 
     const channel = await client.channels.fetch(CHANNEL_ID);
@@ -101,9 +104,10 @@ async function postBannedRestricted(client) {
 
     const formatList = await scrapeFormatChanges(article.link);
     const fallback = 'A new MTG Banned and Restricted announcement has been released.';
-    const description = formatList
+    const raw = formatList
       ? `${formatList}\n\n${article.contentSnippet || fallback}`
       : (article.contentSnippet || fallback);
+    const description = raw.length > 4096 ? raw.slice(0, 4095) + '…' : raw;
 
     const embed = new EmbedBuilder()
       .setTitle(article.title)
