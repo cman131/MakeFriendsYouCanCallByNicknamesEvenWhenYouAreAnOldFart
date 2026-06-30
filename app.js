@@ -91,9 +91,9 @@ schedule.scheduleJob(lobbyRule, () => {
   clearLetsPlayChannelMap();
 });
 
-// 11:30am US Eastern: check for a new Banned & Restricted announcement
+// 2:30pm US Eastern: check for a new Banned & Restricted announcement
 const brRule = new schedule.RecurrenceRule();
-brRule.hour = 11;
+brRule.hour = 14;
 brRule.minute = 30;
 brRule.second = 0;
 brRule.tz = 'America/New_York';
