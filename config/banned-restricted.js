@@ -12,18 +12,24 @@ const MTG_FORMATS = [
   'Standard', 'Pioneer', 'Modern', 'Legacy', 'Vintage', 'Pauper',
   'Alchemy', 'Historic', 'Timeless', 'Brawl', 'Competitive Brawl', 'Commander',
 ];
-const BAN_PATTERN = /\b(?:is banned|is restricted|is unbanned|is unrestricted)\b/i;
-const STRICT_BAN_RE = /^[A-Z][^,]+\s+is\s+(?:banned|restricted|unbanned|unrestricted)\.?$/i;
+const STRICT_BAN_RE = /^[A-Z].+\s+is\s+(?:banned|restricted|unbanned|unrestricted)\.?$/i;
 
-function fetchHtml(url) {
+function fetchHtml(url, depth = 0) {
   return new Promise((resolve, reject) => {
     https.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' } }, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-        return fetchHtml(res.headers.location).then(resolve).catch(reject);
+        if (depth >= 5) return reject(new Error('Too many redirects'));
+        const resolved = new URL(res.headers.location, url).href;
+        return fetchHtml(resolved, depth + 1).then(resolve).catch(reject);
+      }
+      if (res.statusCode >= 400) {
+        res.resume();
+        return reject(new Error(`HTTP ${res.statusCode} fetching ${url}`));
       }
       let data = '';
       res.on('data', chunk => { data += chunk; });
       res.on('end', () => resolve(data));
+      res.on('error', reject);
     }).on('error', reject);
   });
 }
