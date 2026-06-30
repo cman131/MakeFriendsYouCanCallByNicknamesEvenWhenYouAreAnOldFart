@@ -12,7 +12,8 @@ const MTG_FORMATS = [
   'Standard', 'Pioneer', 'Modern', 'Legacy', 'Vintage', 'Pauper',
   'Alchemy', 'Historic', 'Timeless', 'Brawl', 'Competitive Brawl', 'Commander',
 ];
-const STRICT_BAN_RE = /^[A-Z].+\s+is\s+(?:banned|restricted|unbanned|unrestricted)\.?$/i;
+const BAN_ACTION_RE = /\b(?:is banned|is restricted|is unbanned|is unrestricted)\b/i;
+const NARRATIVE_START_RE = /^(?:For |Due |As |Because |Since |Therefore |To |In |This |The |With |While |Given |After |During |Although |However |Furthermore |Moreover |Additionally )/i;
 
 function fetchHtml(url, depth = 0) {
   return new Promise((resolve, reject) => {
@@ -63,7 +64,7 @@ async function scrapeFormatChanges(url) {
       const changeLines = [...body.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)]
         .flatMap(m => m[1].replace(/<br\s*\/?>/gi, '\n').split('\n'))
         .map(line => stripHtml(line))
-        .filter(text => STRICT_BAN_RE.test(text));
+        .filter(text => BAN_ACTION_RE.test(text) && !NARRATIVE_START_RE.test(text));
 
       if (changeLines.length === 0) continue;
 
