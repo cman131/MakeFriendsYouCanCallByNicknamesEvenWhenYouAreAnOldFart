@@ -23,7 +23,10 @@ async function deleteThreadRecord(eventId) {
 
 async function handleEventInterestAdd(event, user) {
   const forumChannelId = SERVER_FORUM_MAP[event.guildId];
-  if (!forumChannelId) return;
+  if (!forumChannelId) {
+    console.log(`[event-forum] No forum channel mapped for guild ${event.guildId} — skipping interest add`);
+    return;
+  }
 
   // Partials may be missing data — fetch the full event
   const fullEvent = event.partial ? await event.fetch() : event;
@@ -70,7 +73,10 @@ async function handleEventInterestAdd(event, user) {
 
 async function handleEventInterestRemove(event, user) {
   const forumChannelId = SERVER_FORUM_MAP[event.guildId];
-  if (!forumChannelId) return;
+  if (!forumChannelId) {
+    console.log(`[event-forum] No forum channel mapped for guild ${event.guildId} — skipping interest remove`);
+    return;
+  }
 
   const record = await getThreadRecord(event.id);
   if (!record) return;
@@ -92,7 +98,10 @@ async function deleteThreadAndRecord(guild, record) {
 
 async function handleEventUpdate(oldEvent, newEvent) {
   const forumChannelId = SERVER_FORUM_MAP[newEvent.guildId];
-  if (!forumChannelId) return;
+  if (!forumChannelId) {
+    console.log(`[event-forum] No forum channel mapped for guild ${newEvent.guildId} — skipping event update`);
+    return;
+  }
   if (newEvent.status !== GuildScheduledEventStatus.Canceled) return;
 
   const record = await getThreadRecord(newEvent.id);
@@ -104,7 +113,10 @@ async function handleEventUpdate(oldEvent, newEvent) {
 
 async function handleEventDelete(event) {
   const forumChannelId = SERVER_FORUM_MAP[event.guildId];
-  if (!forumChannelId) return;
+  if (!forumChannelId) {
+    console.log(`[event-forum] No forum channel mapped for guild ${event.guildId} — skipping event delete`);
+    return;
+  }
 
   const record = await getThreadRecord(event.id);
   if (!record) return;
