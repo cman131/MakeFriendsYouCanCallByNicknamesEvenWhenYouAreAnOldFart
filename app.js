@@ -5,6 +5,7 @@ const { postPackOfTheDay, handlePackVote } = require('./config/pack-of-the-day')
 const { postBannedRestricted } = require('./config/banned-restricted');
 const { connectDb } = require('./config/db');
 const config = require('./config/default');
+const { handleEventInterestAdd, handleEventInterestRemove, handleEventUpdate, handleEventDelete } = require('./config/event-forum');
 
 const client = new Client({
   intents: botIntents,
@@ -56,10 +57,21 @@ client.on('interactionCreate', (interaction) => {
   }
 });
 
-//client.on('guildScheduledEventUserAdd', (event, user) => {
-//    const eventMsg = 'You\'ve signed up for: ' + event.name + '\n' + event.url;
-//    user.send(eventMsg);
-//});
+client.on('guildScheduledEventUserAdd', (event, user) => {
+  handleEventInterestAdd(event, user).catch(e => console.error('Event interest add failed:', e));
+});
+
+client.on('guildScheduledEventUserRemove', (event, user) => {
+  handleEventInterestRemove(event, user).catch(e => console.error('Event interest remove failed:', e));
+});
+
+client.on('guildScheduledEventUpdate', (oldEvent, newEvent) => {
+  handleEventUpdate(oldEvent, newEvent).catch(e => console.error('Event update failed:', e));
+});
+
+client.on('guildScheduledEventDelete', (event) => {
+  handleEventDelete(event).catch(e => console.error('Event delete failed:', e));
+});
 
 // 5pm EST (10pm GMT)
 const eventAlertRule = new schedule.RecurrenceRule();
