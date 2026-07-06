@@ -33,11 +33,23 @@ async function handleEventInterestAdd(event, user) {
   let thread;
   if (!record) {
     const forumChannel = await fullEvent.guild.channels.fetch(forumChannelId);
-    thread = await forumChannel.threads.create({
+    const newThread = await forumChannel.threads.create({
       name: fullEvent.name,
       message: { content: fullEvent.url },
     });
-    await saveThreadRecord(fullEvent.guildId, fullEvent.id, thread.id);
+    try {
+      await saveThreadRecord(fullEvent.guildId, fullEvent.id, newThread.id);
+      thread = newThread;
+    } catch (e) {
+      if (e.code === 11000) {
+        // Race: another concurrent handler won — delete our orphaned thread and use theirs
+        await newThread.delete().catch(() => {});
+        const winner = await getThreadRecord(fullEvent.id);
+        thread = await fullEvent.guild.channels.fetch(winner.threadId);
+      } else {
+        throw e;
+      }
+    }
   } else {
     thread = await fullEvent.guild.channels.fetch(record.threadId);
   }
