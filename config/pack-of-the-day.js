@@ -1,5 +1,5 @@
 const https = require('https');
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
 const { getCollection } = require('./db');
 
 function fetchText(url) {
@@ -71,6 +71,72 @@ function buildTallyText(counts, cardNames) {
     return `${i + 1}. ${label}: ${Math.round(n / total * 100)}%`;
   }).join('\n');
   return `\nVotes (${total} total):\n||${parts}||`;
+}
+
+const MTG_TYPES = ['Land', 'Creature', 'Artifact', 'Enchantment', 'Instant', 'Sorcery', 'Planeswalker', 'Battle'];
+const COLOR_NAMES = { W: 'White', U: 'Blue', B: 'Black', R: 'Red', G: 'Green' };
+
+function normalizeCmc(cmc) {
+  return cmc >= 6 ? '6+' : String(cmc);
+}
+
+function extractPrimaryType(typeStr) {
+  if (!typeStr) return null;
+  return MTG_TYPES.find(t => typeStr.includes(t)) ?? null;
+}
+
+async function buildUserStatsEmbed(userId) {
+  const sessions = await getCollection('packSessions')
+    .find({ 'votes.userId': userId }, { projection: { cards: 1, votes: 1 } })
+    .toArray();
+
+  const colorCounts = {};
+  const typeCounts = {};
+  const cmcCounts = {};
+  let totalPicks = 0;
+
+  for (const session of sessions) {
+    const vote = session.votes?.find(v => v.userId === userId);
+    if (!vote) continue;
+    const card = session.cards?.find(c => c.pick === vote.pick);
+    if (!card) continue;
+    totalPicks++;
+
+    if (!card.color_identity?.length) {
+      colorCounts['Colorless'] = (colorCounts['Colorless'] ?? 0) + 1;
+    } else {
+      for (const c of card.color_identity) {
+        const name = COLOR_NAMES[c] ?? c;
+        colorCounts[name] = (colorCounts[name] ?? 0) + 1;
+      }
+    }
+
+    const type = extractPrimaryType(card.type);
+    if (type) typeCounts[type] = (typeCounts[type] ?? 0) + 1;
+
+    if (card.cmc != null) {
+      const bucket = normalizeCmc(card.cmc);
+      cmcCounts[bucket] = (cmcCounts[bucket] ?? 0) + 1;
+    }
+  }
+
+  function top2(counts, denominator) {
+    return Object.entries(counts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 2)
+      .map(([k, n]) => `${k}: ${Math.round(n / denominator * 100)}%`)
+      .join('\n') || 'No data';
+  }
+
+  return new EmbedBuilder()
+    .setTitle('🎲 Your Pick History')
+    .setDescription(`Based on ${totalPicks} total pick${totalPicks !== 1 ? 's' : ''}`)
+    .setColor(0x5865F2)
+    .addFields(
+      { name: '🎨 Colors', value: top2(colorCounts, totalPicks), inline: true },
+      { name: '📋 Types', value: top2(typeCounts, totalPicks), inline: true },
+      { name: '⚡ CMC', value: top2(cmcCounts, totalPicks), inline: true },
+    );
 }
 
 const excludedCards = ['swords to plowshares'];
@@ -177,7 +243,8 @@ async function handlePackVote(interaction) {
     const alreadyVotedMsg = priorCardName
       ? `You already voted for ${priorCardName}!`
       : 'You already voted!';
-    return interaction.reply({ content: alreadyVotedMsg, ephemeral: true });
+    const statsEmbed = await buildUserStatsEmbed(interaction.user.id);
+    return interaction.reply({ content: alreadyVotedMsg, ephemeral: true, embeds: [statsEmbed] });
   }
 
   const cardNames = new Map((session.cards ?? []).filter(c => c.name).map(c => [c.pick, c.name]));
@@ -186,7 +253,9 @@ async function handlePackVote(interaction) {
     counts.set(p, (counts.get(p) ?? 0) + 1);
   }
   const newContent = session.baseContent + '\n----' + buildTallyText(counts, cardNames) + '\n----';
-  return interaction.update({ content: newContent, components: buildPackRows(cardNames) });
+  await interaction.update({ content: newContent, components: buildPackRows(cardNames) });
+  const statsEmbed = await buildUserStatsEmbed(interaction.user.id);
+  return interaction.followUp({ ephemeral: true, embeds: [statsEmbed] });
 }
 
 module.exports = { postPackOfTheDay, postPackToChannel, handlePackVote };
