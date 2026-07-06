@@ -73,6 +73,8 @@ function buildTallyText(counts, cardNames) {
   return `\nVotes (${total} total):\n||${parts}||`;
 }
 
+const excludedCards = ['swords to plowshares'];
+const MAX_PACK_ATTEMPTS = 20;
 async function fetchPackCards(seed) {
   const cardNames = new Map();
   const cards = [];
@@ -103,10 +105,31 @@ async function fetchPackCards(seed) {
 }
 
 async function postPackToChannel(channel) {
-  const seed = randomSeed();
-  const imageUrl = `https://cubecobra.com/cube/samplepackimage/${CUBE_ID}/${seed}`;
-  const baseContent = `New day, new pack!\nWhat is your pack 1 pick 1?\n\n${imageUrl}`;
-  const { cardNames, cards } = await fetchPackCards(seed);
+  let seed, imageUrl, baseContent, cardNames, cards;
+  let packFound = false;
+
+  for (let attempt = 0; attempt < MAX_PACK_ATTEMPTS; attempt++) {
+    seed = randomSeed();
+    imageUrl = `https://cubecobra.com/cube/samplepackimage/${CUBE_ID}/${seed}`;
+    baseContent = `New day, new pack!\nWhat is your pack 1 pick 1?\n\n${imageUrl}`;
+    ({ cardNames, cards } = await fetchPackCards(seed));
+
+    if (cardNames.size === 0) continue;
+
+    const hasExcluded = [...cardNames.values()].some(
+      name => excludedCards.includes(name.toLowerCase().replace(/\s+/g, ' ').trim())
+    );
+    if (!hasExcluded) {
+      packFound = true;
+      break;
+    }
+  }
+
+  if (!packFound) {
+    console.error(`postPackToChannel: no valid pack after ${MAX_PACK_ATTEMPTS} attempts`);
+    return;
+  }
+
   const rows = buildPackRows(cardNames);
   const msg = await channel.send({ content: baseContent, components: rows });
   await getCollection('packSessions').insertOne({
