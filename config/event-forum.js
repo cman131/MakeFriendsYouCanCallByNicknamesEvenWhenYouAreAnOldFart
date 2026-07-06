@@ -2,7 +2,11 @@ const { GuildScheduledEventStatus } = require('discord.js');
 const { getCollection } = require('./db');
 
 const SERVER_FORUM_MAP = {
-  '1015706233061245099': '1522711422637703268',
+  '151793679814623233': '1523799783918010540', // Panda plaza
+  '1015706233061245099': '1522711422637703268', // Shadow council
+  '1094812307135156234': '1523800108347560090', // CHS Mahjong
+  '1288164872038912030': '1523773374369894440', // MTG Discord
+  '1301214948504109107': '1523798890623664241' // Game society
 };
 
 function col() {
