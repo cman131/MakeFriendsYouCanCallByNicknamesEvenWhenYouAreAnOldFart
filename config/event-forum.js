@@ -56,4 +56,16 @@ async function handleEventInterestAdd(event, user) {
   );
 }
 
-module.exports = { handleEventInterestAdd };
+async function handleEventInterestRemove(event, user) {
+  const forumChannelId = SERVER_FORUM_MAP[event.guildId];
+  if (!forumChannelId) return;
+
+  const record = await getThreadRecord(event.id);
+  if (!record) return;
+
+  const fullEvent = event.partial ? await event.fetch() : event;
+  const thread = await fullEvent.guild.channels.fetch(record.threadId);
+  await thread.members.remove(user.id);
+}
+
+module.exports = { handleEventInterestAdd, handleEventInterestRemove };
