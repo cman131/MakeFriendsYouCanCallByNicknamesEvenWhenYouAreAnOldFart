@@ -18,6 +18,8 @@ async function connectDb() {
   const col = client.db(DB_NAME).collection('packSessions');
   await col.createIndex({ messageId: 1 }, { unique: true });
   await col.createIndex({ postedAt: 1 });
+  const eventThreadsCol = client.db(DB_NAME).collection('event_threads');
+  await eventThreadsCol.createIndex({ eventId: 1 }, { unique: true });
   console.log('Connected to MongoDB');
 }
 
